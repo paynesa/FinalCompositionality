@@ -6,6 +6,7 @@ from scipy import stats
 import spacy
 nlp = spacy.load('en_core_web_lg')
 
+#parse the command-line arguments 
 def parse_args():
 	parser = ArgumentParser()
 	parser.add_argument("--e", type=str, default="total", help="The type of evaluation set to be used")
@@ -16,6 +17,7 @@ def parse_args():
 	args = parser.parse_args()
 	return args
 
+#compute the distance between two embeddings using cosine similarity
 def distance(word1, word2):
 	dot_product = np.dot(word1, word2)
 	mag_word1 = np.linalg.norm(word1)
@@ -23,75 +25,26 @@ def distance(word1, word2):
 	return (dot_product/(mag_word1 * mag_word2))
 
 def main():
-	d2  = {
-        "NOUN": 3.900000000000002,
-        "DET": 0.0000000000000000001,
-        "ADV": 0.8999999999999999,
-        "ADJ": 0.8999999999999999,
-        "ADP": 0.7999999999999999,
-        "VERB": 1.4000000000000001,
-        "NUM": 0.0000000000000001,
-        "PRON": 0.9999999999999999,
-        "INTJ": 3.900000000000002,
-        "CCONJ": 0.4,
-        "PART": 0.7,
-        "PROPN": 0.000000000000000001,
-        "X": 3.900000000000002,
-        "PUNCT": 3.900000000
-        }
-
-	d1 = {}
-	d2 = {
-        "NN": 3.3000000000000016,
-        "DT": 0.0000000000000001,
-        "RB": 0.8999999999999999,
-        "IN": 0.7999999999999999,
-        "JJ": 0.8999999999999999,
-        "WRB": 3.900000000000002,
-        "CD": 0.0000000000000001,
-        "WDT": 3.900000000000002,
-        "VB": 1.0999999999999999,
-        "PRP": 0.9999999999999999,
-        "UH": 3.900000000000002,
-        "CC": 0.4,
-        "WP": 3.900000000000002,
-        "VBP": 1.0999999999999999,
-        "VBN": 0.8999999999999999,
-        "TO": 0.5,
-        "PRP$": 1.0999999999999999,
-        "NNP": 0.0000000000000001,
-        "VBD": 1.5000000000000002,
-        "RP": 0.7,
-        "RBR": 0.9999999999999999,
-        "VBG": 0.6,
-        "NNS": 0.7,
-        "JJR": 3.900000000000002,
-        "MD": 3.900000000000002,
-        "JJS": 0.7999999999999999,
-        "RBS": 0.7,
-        "WP$": 3.900000000000002,
-        "FW": 3.900000000000002,
-        "XX": 3.900000000000002,
-        "LS": 3.900000000000002,
-        "PDT": 0.00000000000000001,
-        "EX": 3.900000000000002,
-        "VBZ": 3.900000000000002,
-        ".": 3.900000000000002,
-        "AFX": 3.900000000000002
-        }
-
-	d2 = {}
+	#load the embeddings
 	print("Loading embeddings")
 	args = parse_args()
-	vecs = Magnitude(args.v)
+	try:
+		vecs = Magnitude(args.v)
+	except:
+		raise Exception("Invalid path to embeddings")
 	print("Embeddings loaded!")
-	tags = [] 
+	#load the evaluation set as a csv
 	eval_set = pd.read_csv(args.e+'_evaluations.txt', sep=' ', header=None).as_matrix()
+	tags = [] 
+	d1 = {}
+	d2 = {}
+	#iterate through the tags file and create a list of the tags	
 	for line in open(args.t, 'r'):
+		################### get initial (inside) weights ####################
 		tag = line.strip()
 		one = correlation(eval_set, 1, vecs, tag, args.p, 1, d1, d2)
 		up = correlation(eval_set, 1, vecs, tag, args.p, 1.2, d1, d2)
-		print(one, up)
+		#if going up improves the weight, keep going up until it doesn't
 		if up > one:
 			weight = 1.2
 			last = one
@@ -104,6 +57,7 @@ def main():
 			print(tag, weight)
 		
 		else:
+			#otherwise, try to go down
 			down = correlation(eval_set, 1, vecs, tag, args.p, .8, d1, d2)
 			if down > one:
 				weight = .8
@@ -115,6 +69,7 @@ def main():
 					new = correlation(eval_set, 1, vecs, tag, args.p, weight, d1, d2)
 				d1[tag] = weight
 				print(tag, weight)
+			#if that doesn't work, try taking more drastic up and down measurements
 			else:
 				up = correlation(eval_set, 1, vecs, tag, args.p, 2, d1, d2)
 				if up > one:
@@ -139,13 +94,17 @@ def main():
 							new = correlation(eval_set, 1, vecs, tag, args.p, weight, d1, d2)
 						d1[tag] = weight
 						print(tag, weight)
+					#finally, if all else fails, make the weight 1
 					else:
 						d1[tag] = 1
 						print(tag, 1)
+
+		####################### get secondary (outside) weights ##########################
 		x = 1 
 		x2 = x+.2
 		one = correlation(eval_set, 2, vecs, tag, args.p, x, d1, d2)
 		up = correlation(eval_set, 2, vecs, tag, args.p, x2, d1, d2)
+		#if increasing the weight improves correlation, keep increasing until it no longer does
 		if up > one:
 			weight = x2
 			last = one
@@ -157,6 +116,7 @@ def main():
 			d2[tag] = weight
 			print(tag, weight)
 
+		#otherwise, try decreasing the weight
 		else:
 			down = correlation(eval_set, 2, vecs, tag, args.p, x-.2, d1, d2)
 			if down > one:
@@ -169,6 +129,8 @@ def main():
 					new = correlation(eval_set, 2, vecs, tag, args.p, weight, d1, d2)
 				d2[tag] = weight
 				print(tag, weight)
+
+			#if neither of these work, try more drastic increments
 			else:
 				up = correlation(eval_set, 2, vecs, tag, args.p, 2, d1, d2)
 				if up > one:
@@ -193,17 +155,20 @@ def main():
 							new = correlation(eval_set, 2, vecs, tag, args.p, weight, d1, d2)
 						d2[tag] = weight
 						print(tag, weight)
+
+					#finally, set the weight to 1 
 					else:
 						d2[tag] = 1
 						print(tag, 1)
 
 
-
+#compute the correlation between the embeddings and human evaluations
 def correlation(eval_set, comp, vecs, pos, typ, weight, d1, d2):
 	sim = []
 	act0 = []
 	act1 = []
 	act2 = []
+	#iterate through the evaluation set, get the embeddings and their distances, and append to list 
 	for i in range(eval_set.shape[0]):
 		w1 = get_embedding(eval_set[i][0], comp, vecs, pos, typ, weight, d1, d2)
 		w2 = get_embedding(eval_set[i][1], comp, vecs, pos, typ, weight, d1, d2)
@@ -214,6 +179,7 @@ def correlation(eval_set, comp, vecs, pos, typ, weight, d1, d2):
 			act0.append(float(actuals[0]))
 			act1.append(float(actuals[1]))
 			act2.append(float(actuals[2]))
+	#compute and return correlation between the cosine list and human judgement 
 	sim = np.asarray(sim)
 	act0 = np.asarray(act0)
 	act1 = np.asarray(act1)
@@ -225,9 +191,7 @@ def correlation(eval_set, comp, vecs, pos, typ, weight, d1, d2):
 	return coravg	
 
 
-
-	
-
+#the function to get the weighted embeddings for each phrase. Either gets inner-weighting or outer-weighting based on comp argument 
 def get_embedding(string, comp, vecs, pos, typ, weight, d1, d2):
 	if pd.isnull(string):
 		return []
@@ -235,11 +199,13 @@ def get_embedding(string, comp, vecs, pos, typ, weight, d1, d2):
 		return dilate(string, vecs, pos, typ, weight, d1, d2)
 	elif comp == 2:
 		return dilate2(string, vecs, pos, typ, weight, d1, d2)
-	
+
+#the inner weight computation 	
 def dilate(string, vecs, pos, typ, weight, d1, d2):
 	word = " ".join(string.split('_'))
 	word = nlp(word)
 	new = []
+	#get pos type, and then weight accordingly after querying the necessary vectors
 	if typ == "dep":
 		for token in word:
 			u = vecs.query(token.head.text)
@@ -252,14 +218,41 @@ def dilate(string, vecs, pos, typ, weight, d1, d2):
 				new.append(d2[token.dep_]*(uv*u+(d1[token.dep_]*uu*v)))
 			else:
 				new.append((uv*u+uu*v))
-	#try:
-	return add(new)
-	#except:
-	#	return []
+	elif typ == "pos":
+		for token in word:
+			u = vecs.query(token.head.text)
+			v = vecs.query(token.text)
+			uu = np.dot(u, u)
+			uv = np.dot(u, v)
+			if token.pos_ == pos:
+				new.append((uv*u+(weight*uu*v)))
+			elif token.pos_ in d2:
+				new.append(d2[token.pos_]*(uv*u+(d1[token.pos_]*uu*v)))
+			else:
+				new.append((uv*u+uu*v))
+	elif typ == "tag":
+		for token in word:
+			u = vecs.query(token.head.text)
+			v = vecs.query(token.text)
+			uu = np.dot(u, u)
+			uv = np.dot(u, v)
+			if token.tag_ == pos:
+				new.append((uv*u+(weight*uu*v)))
+			elif token.tag_ in d2:
+				new.append(d2[token.tag_]*(uv*u+(d1[token.tag_]*uu*v)))
+			else:
+				new.append((uv*u+uu*v))		
+	try:
+		return add(new)
+	except:
+		return []
+
+#the outer weight computation
 def dilate2(string, vecs, pos, typ, weight, d1, d2):
 	word = " ".join(string.split('_'))
 	word = nlp(word)
 	new = []
+	#get pos type, and then weight accordingly after querying the necessary vectors
 	if typ == "dep":
 		for token in word:
 			u = vecs.query(token.head.text)
@@ -272,10 +265,36 @@ def dilate2(string, vecs, pos, typ, weight, d1, d2):
 				new.append(d2[token.dep_]*(uv*u+(d1[token.dep_]*uu*v)))
 			else:
 				new.append(uv*u+uu*v)
-	#try:
-	return add(new)
-	#except:
-	#	return []
+	if typ == "pos":
+		for token in word:
+			u = vecs.query(token.head.text)
+			v = vecs.query(token.text)
+			uu = np.dot(u, u)
+			uv = np.dot(u, v)
+			if token.pos_ == pos:
+				new.append(weight*(uv*u +(d1[token.pos_]*uu*v)))
+			elif token.pos_ in d2:
+				new.append(d2[token.pos_]*(uv*u+(d1[token.pos_]*uu*v)))
+			else:
+				new.append(uv*u+uu*v)	
+	if typ == "tag":
+		for token in word:
+			u = vecs.query(token.head.text)
+			v = vecs.query(token.text)
+			uu = np.dot(u, u)
+			uv = np.dot(u, v)
+			if token.tag_ == pos:
+				new.append(weight*(uv*u +(d1[token.tag_]*uu*v)))
+			elif token.tag_ in d2:
+				new.append(d2[token.tag_]*(uv*u+(d1[token.tag_]*uu*v)))
+			else:
+				new.append(uv*u+uu*v)
+	try:
+		return add(new)
+	except:
+		return []
+
+#add a set of vectors together and return the sum 
 def add(vecs):
         c = vecs[0]
         for i in range(len(vecs)-1):
