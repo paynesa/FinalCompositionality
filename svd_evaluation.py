@@ -7,6 +7,7 @@ import spacy
 from sklearn.decomposition import TruncatedSVD  
 nlp = spacy.load('en_core_web_lg')
 
+#parse the command-line arguments 
 def parse_args():
 	parser = ArgumentParser()
 	parser.add_argument("--e", type=str, default="total", help="The type of evaluation set to be used")
@@ -16,11 +17,13 @@ def parse_args():
 	return args
 
 def main():
+	#load the embeddings and evaluation set 
 	args = parse_args()
 	print("Loading embeddings...")
 	vecs = Magnitude(args.v)
 	print("Embeddings loaded!")
 	eval_set = pd.read_csv(args.e+'_evaluations.txt', sep=' ', header=None).as_matrix()
+	#get SIF weights 
 	weights = {}
 	for line in open('enwiki_vocab_min200.txt', 'r'):
 		line = line.split()	
@@ -28,13 +31,13 @@ def main():
 			weights[line[0].strip()] = (1e-3)/(1e-3+int(line[1].strip())) 
 		except:
 			print(line)
-	#sim = []
 	avg = []
 	act0 = []
 	act1 = []
 	act2 = []
 	x = []
 	y = []
+	#iterate through through the evaluation set and add the cosine between two phrases to the list
 	for i in range(eval_set.shape[0]):
 		w1 = get_embedding(eval_set[i][0], args.comp, vecs, weights)
 		w2 = get_embedding(eval_set[i][1], args.comp, vecs, weights)
@@ -42,20 +45,12 @@ def main():
 		if (len(w1) == len(w2)) and (len(w1) != 0) and True not in np.isnan(w1) and True not in np.isnan(w2):
 			x.append(w1)
 			x.append(w2)
-		#	y.append(distance(w1, w2))				
-			#with open('lppdb_evaluations.txt', 'a') as f:
-			#	f.write("{} {} {} {}\n".format(eval_set[i][0], eval_set[i][1], eval_set[i][2], eval_set[i][3]))
-			#this_sim = distance(w1, w2)
-			#sim.append(this_sim)
 			avg.append(eval_set[i][2])
 			actuals = eval_set[i][3].split(',')
 			act0.append(float(actuals[0]))
 			act1.append(float(actuals[1]))
 			act2.append(float(actuals[2]))
-#	x0, y0 = stats.spearmanr(y, act0)
-#	x1, y1 = stats.spearmanr(y, act1)
-#	x2, y2 = stats.spearmanr(y, act2)
-#	print((x0+x1+x2)/3)
+	#SVD
 	avg = np.asarray(avg)
 	act0 = np.asarray(act0)
 	act1 = np.asarray(act1)
@@ -64,8 +59,6 @@ def main():
 	svg = []
 	x = np.asarray(x)
 	x = np.nan_to_num(x)
-#	print(np.any(np.isnan(x)), np.all(np.isfinite(x)))
-#	print(x)
 	x = x/np.linalg.norm(x, axis=0, keepdims=True)
 	x = x/np.linalg.norm(x, axis=1, keepdims=True)
 	svd = TruncatedSVD(n_components=1, n_iter=7, random_state=0)
@@ -77,14 +70,12 @@ def main():
 	while y< t:
 		w1 = x[y, :]
 		w2 = x[y+1, :]
-#		print(w1, w2)
 		nosvg.append(distance(w1, w2))
 		w1 = XX[y, :]
 		w2 = XX[y+1, :]
 		svg.append(distance(w1, w2))
 		y+=2
-#	print(nosvg)
-	print(len(svg), len(act0))
+	#find the correlation between the embedding similarities and the human judgement 
 	cor0, pval0 = stats.spearmanr(nosvg, act0)
 	cor1, pval1 = stats.spearmanr(nosvg, act1)
 	cor2, pval2 = stats.spearmanr(nosvg, act2)
@@ -97,40 +88,7 @@ def main():
 	coravg = (cor0+cor1+cor2)/3
 	pvalavg = (pval0+pval1+pval2)/3
 	print("Averaged across user correlation: {:.4f} \n\tpval {:.4f}".format(coravg, pvalavg))
-#	cor, pval = stats.spearmanr(sim, avg)
-#	print("{} pairs evaluated".format(len(sim)))
-#	print("Average correlation: {:.4f} \n\tpval: {:.4f}".format(cor, pval))
-##	cor0, pval0 = stats.spearmanr(sim, act0)
-##	print("User 0 correlation: {:.4f} \n\tpval: {:.4f}".format(cor0, pval0))
-#	cor1, pval1 = stats.spearmanr(sim, act1)
-#	print("User 1 correlation: {:.4f} \n\tpval: {:.4f}".format(cor1, pval1))
-#	cor2, pval2 = stats.spearmanr(sim, act2)
-#	print("User 2 correlation: {:.4f} \n\tpval: {:.4f}".format(cor2, pval2))
-#	coravg = (cor0+cor1+cor2)/3
-#	pvalavg = (pval0+pval1+pval2)/3
-#	print("Averaged across user correlation: {:.4f} \n\tpval {:.4f}".format(coravg, pvalavg))
-#	avg12 = (act1+act2)/2
-#	avg02 = (act0+act2)/2
-#	avg01 = (act0+act1)/2
-#	c0, p0 = stats.spearmanr(act0, avg12)
-#	c1, p1 = stats.spearmanr(act1, avg02)
-#	c2, p2 = stats.spearmanr(act2, avg01)
-#	svd = TruncatedSVD(n_components=1, n_iter=7, random_state=0)
-#	x = np.asarray(x)
-#	svd.fit(x)
-#	pc = svd.components_
-#	XX = x - x.dot(pc.transpose()) * pc
-#	y = 0 
-#	t =  x.shape[0]
-#	s = []
-#	while y < t:
-#		w1 = x[y, :]
-#		w2 = x[y+1, :]
-#		s.append(distance(w1, w2))
-#		y += 2
-#	print(stats.spearmanr(s, act0))	
-#	print(XX, XX.shape, svd.components_.shape)
-#	print("Leave one out resampling: {:.3f}".format((c0+c1+c2)/3))
+
 
 #calculate the cosine distance between two embeddings
 def distance(word1, word2):
@@ -154,11 +112,8 @@ def get_embedding(string, comp, vecs, weights):
 			return tags(string, vecs)
 		if comp == "dilate":
 			return decompose(string, vecs)
-		if comp == "head":
-			return dilate2(string, vecs, weights)
 		x = []
 		string = string.strip().split('_')
-		#print(string)
 		if (len(string) == 1) and (string[0].strip() in vecs):
 			return vecs.query(string[0])
 		elif all(word.strip() in vecs for word in string):
@@ -174,10 +129,10 @@ def get_embedding(string, comp, vecs, weights):
 				return decompose(x)
 			elif (comp == "weight"):
 				return weighted_add(x)
-			#elif (comp == "spacy"):
-			#	return spacy(x, string)
-			#else:
-			#	raise Exception("Invalid composition type")
+			elif (comp == "average"):
+				average(x)
+			elif (comp == "lapata_combination"):
+				lapata_combination(x)
 		else:
 			return []
 
@@ -196,6 +151,7 @@ def add(vecs):
         #return 1/(np.linalg.norm(c))*c
         #return c/len(vecs)
         return c
+
 #vector decomposition by Lapata et. al.
 def decompose(vecs):
         u = vecs[0]
@@ -213,7 +169,7 @@ def decompose(vecs):
                 c = add(x) 
                 return c
 
-
+#weight based on pos. Add more dictionaries as needed 
 def d(string, vecs, sif):
 	deps = {
         "ROOT": 3.900000000000002,
@@ -500,12 +456,6 @@ def d(string, vecs, sif):
 	
 	string = string.replace("_", " ")
 	string = nlp(string)
-#	u = None
-#	for token in string:
-#		if token.dep_ == "ROOT":
-#			u = vecs.query(token.text)
-#	u = vecs.query(string[0].text)	
-#	uu = np.dot(u, u)
 	new = []
 	for w in string [0:]:
 		v = vecs.query(w.text)
@@ -524,24 +474,6 @@ def d(string, vecs, sif):
 		return []	
 		
 
-def decompose2(vecs):
-	if len(vecs) ==2:
-		u = vecs[0]
-		uu = np.dot(u, u)
-		v = vecs[1]
-		uv = np.dot(v, u)
-		return uu*v+uv*u
-	else:
-		x = vecs
-		while len(x) >=2: 
-			v = x[-2:]
-			x = x[:len(x)-3]
-			x.append(decompose2(v))
-		if len(x) != 1:
-			raise Exception("Oh crap")
-		return x[0]
-
-
 
 #average the vectors
 def average(vecs):
@@ -553,6 +485,8 @@ def lapata_combination(vecs):
         a = add(vecs)
         c = .6*(m)+.4*(a)
         return(c)
+
+#weight the words by position in the sentence 
 def weighted_add(vecs):
 	if len(vecs)== 2:
 		return 0.3*vecs[0]+0.7*vecs[1]
@@ -563,247 +497,19 @@ def weighted_add(vecs):
 	elif len(vecs) == 5:
 		return .1*vecs[0]+.1*vecs[1]+.3*vecs[2]+.2*vecs[3]+.3*vecs[4] 
 	else:
-	#	return .0*vecs[0]+ .0*vecs[1]+ .0*vecs[2] +.29*vecs[3] + .3*vecs[4] + .3*vecs[5] 
 		return .32*vecs[3]+.33*vecs[4]+ .33*vecs[5] 
 
+#add weights to use this method 
 def new(s, vecs, weights):
 	word = s.replace("_", " ").split()
 	new = []
 	for w in word:
 		try:	
-			#print(weights[w.strip()]*vecs.query(w.strip()))
 			new.append(weights[w.strip()]*vecs.query(w.strip()))
 		except:
-			#print(word)
 			new.append(1e-3/(1e-3 + 1)*vecs.query(w.strip()))
 	try:
 		return np.asarray(add(new), dtype=float)
-	except:
-		return []
-
-def dilate2(s, vecs, weights):
-	pos={
-	"NUM":-.4,
-	"NOUN": 3.8,
-	"SPACE": 1, 
-	"DET": 1.4,
-	"ADV": 1.8,
-	"ADJ": 1.8,
-	"ADP": 2.8,
-	"VERB": 2.2, 
-	"PROPN": -2.8,
-	"PRON": 1.6000000000000001,
-	"INTJ": 1,
-	"CCONJ": .6,
-	"PART": 1.4,
-	"X":0.4,
-	"PUNCT": 1
-	}
-	
-			
-	poss = { 
-	"NOUN": 3.900000000000002,
-	"DET": 0.0000000000000000001,
-	"ADV": 0.8999999999999999,
-	"ADJ": 0.8999999999999999,
-	"ADP": 0.7999999999999999,
-	"VERB": 1.4000000000000001,
-	"NUM": 0.0000000000000001,
-	"PRON": 0.9999999999999999,
-	"INTJ": 3.900000000000002,
-	"CCONJ": 0.4,
-	"PART": 0.7,
-	"PROPN": 0.000000000000000001,
-	"X": 3.900000000000002,
-	"PUNCT": 3.900000000
-	}
-
-	
-	tags = {
-	"NN": 3.3000000000000016,
-	"DT": 0.0000000000000001,
-	"RB": 0.8999999999999999,
-	"IN": 0.7999999999999999,
-	"JJ": 0.8999999999999999,
-	"WRB": 3.900000000000002,
-	"CD": 0.0000000000000001,
-	"WDT": 3.900000000000002,
-	"VB": 1.0999999999999999,
-	"PRP": 0.9999999999999999,
-	"UH": 3.900000000000002,
-	"CC": 0.4,
-	"WP": 3.900000000000002,
-	"VBP": 1.0999999999999999,
-	"VBN": 0.8999999999999999,
-	"TO": 0.5,
-	"PRP$": 1.0999999999999999,
-	"NNP": 0.0000000000000001,
-	"VBD": 1.5000000000000002,
-	"RP": 0.7,
-	"RBR": 0.9999999999999999,
-	"VBG": 0.6,
-	"NNS": 0.7,
-	"JJR": 3.900000000000002,
-	"MD": 3.900000000000002,
-	"JJS": 0.7999999999999999,
-	"RBS": 0.7,
-	"WP$": 3.900000000000002,
-	"FW": 3.900000000000002,
-	"XX": 3.900000000000002,
-	"LS": 3.900000000000002,
-	"PDT": 0.00000000000000001,
-	"EX": 3.900000000000002,
-	"VBZ": 3.900000000000002,
-	".": 3.900000000000002,
-	"AFX": 3.900000000000002
-	}
-
-	tag = {
-	"NN": 3.600000000000001,
-	"DT": -1.7999999999999998,
-	"RB": 3.800000000000001,
-	"IN": 1.7999999999999998,
-	"JJ": 0.4000000000000001,
-	"WRB": 1,
-	"CD": 1.5999999999999999,
-	"WDT": 1,
-	"VB": 2.1999999999999997,
-	"PRP": 0.6000000000000001,
-	"UH": 1,
-	"CC": 0.6000000000000001,
-	"WP": 1,
-	"VBP": 1,
-	"VBN": 1.4,
-	"TO": 1.7999999999999998,
-	"PRP$": 7.600000000000004,
-	"NNP": -3.2000000000000006,
-	"VBD": 2.8000000000000003,
-	"RP": 1.4,
-	"RBR": 1.4,
-	"VBG": 1.4,
-	"NNS": 2.4,
-	"JJR": 1,
-	"MD": -0.8999999999999999,
-	"JJS": 1.5999999999999999,
-	"RBS": -1.4,
-	"WP$": 1,
-	"FW": 0.6000000000000001,
-	"XX": 1,
-	"LS": 1,
-	"PDT": -1.0,
-	"EX": 1,
-	"VBZ": 1,
-	".": 1,
-	"AFX": 1
-	}
-
-	dep = {
-	"ROOT": 9.0,
-	"det": -0.6,
-	"advmod": 0.6000000000000001,
-	"pobj": 0.4000000000000001,
-	"prep": 0.20000000000000007,
-	"amod": 0.20000000000000007,
-	"nsubj": 1.4,
-	"cc": 0.20000000000000007,
-	"dobj": 1.9999999999999998,
-	"intj": 1,
-	"aux": 0.4000000000000001,
-	"conj": -0.19999999999999996,
-	"compound": 1.5999999999999999,
-	"poss": 1,
-	"mark": 1,
-	"neg": 1,
-	"prt": 0.4000000000000001,
-	"xcomp": 2.4000000000000004,
-	"nummod": 2.4,
-	"auxpass": 1.4,
-	"pcomp": 1,
-	"ccomp": 1,
-	"preconj": 2.6,
-	"attr": 1,
-	"npadvmod": 1,
-	"acomp": 1,
-	"dative": 0.20000000000000007,
-	"punct": 1,
-	"quantmod": 1,
-	"dep": 1,
-	"appos": 0.6000000000000001,
-	"acl": 1,
-	"predet": -0.8,
-	"advcl": 1,
-	"expl": 1,
-	"nsubjpass": 1,
-	"relcl": 1,
-	"nmod": 1,
-	"oprd": 1
-	}
-
-	deps = {
-	"ROOT": 3.900000000000002,
-	"det": 0.0000000000001,
-	"advmod": 0.7999999999999999,
-	"pobj": 0.7,
-	"prep": 0.4,
-	"amod": 0.5,
-	"nsubj": 1.2,
-	"cc": 0.4,
-	"dobj": 1.9000000000000006,
-	"intj": 3.900000000000002,
-	"aux": 0.5,
-	"conj": 0.1,
-	"compound": 1.3,
-	"poss": 1.0999999999999999,
-	"mark": 3.900000000000002,
-	"neg": 0.8999999999999999,
-	"prt": 0.7,
-	"xcomp": 2.3000000000000007,
-	"nummod": 2.2000000000000006,
-	"auxpass": 1.2,
-	"pcomp": 3.900000000000002,
-	"ccomp": 3.900000000000002,
-	"preconj": 3.900000000000002,
-	"attr": 3.900000000000002,
-	"npadvmod": 3.900000000000002,
-	"acomp": 3.900000000000002,
-	"dative": 0.4,
-	"punct": 3.900000000000002,
-	"quantmod": 3.900000000000002,
-	"dep": 3.900000000000002,
-	"appos": 0.0000000000001,
-	"acl": 3.900000000000002,
-	"predet": 0.000000000000001,
-	"advcl": 3.900000000000002,
-	"expl": 3.900000000000002,
-	"nsubjpass": 3.900000000000002,
-	"relcl": 3.900000000000002,
-	"nmod": 3.900000000000002,
-	"oprd": 3.900000000000002
-	}
-
-	word = " ".join(s.split('_'))
-	word = nlp(word)
-	new = []
-	for token in word:
-	#	u = vecs.query(token.head.text)
-	#	if lemma[token.pos_]:
-	#		v = vecs.query(token.lemma_)
-	#	else:
-	#		v = vecs.query(token.text)
-	#	uu = np.dot(u, u)
-	#	uv = np.dot(u, v)
-	#	new.append(t[token.tag_]*(uv*u+m[token.tag_]*uu*v))	
-		try:
-#			new.append(((poss[token.pos_])+100000000*weights[token.text])*vecs.query(token.text))
-#			new.append((dep[token.dep_]+100000000*weights[token.text])*vecs.query(token.text))
-#			new.append((poss[token.pos_])*vecs.query(token.text))
-#			new.append(((tags[token.tag_]+tag[token.tag_])/2+100000000*weights[token.text])*vecs.query(token.text))
-			new.append(((deps[token.dep_]+pos[token.pos_]+poss[token.pos_])/3+100000000*weights[token.text])*vecs.query(token.text))
-		except:
-			continue
-	
-	try:
-		return add(new)
 	except:
 		return []
 
