@@ -14,7 +14,21 @@ Iterates through unimodal, multimodal, and composed embeddings to find the most 
 ## write_composed.py 
 Writes the composed embeddings to an output file so that you may work with them outside of this environment, or may input them to _print_similarity.py_. This code takes in the following command-line arguments: --e gives the path to the word embeddings to be composed, --w gives the word/phrase list of things to be composed, --o gives the path to the output file, --a gives whether or not you would like articles to be included, and comp is the method of compositionality you would like to utilize. Multiplication, addition, and decomposition are currently available for this model. The output may be converted to the Magnitude format in the command line. 
 
+# Analogies
+We evaluate the composed embeddings on analogies taken from [Mikolov et al. (2013)](https://papers.nips.cc/paper/5021-distributed-representations-of-words-and-phrases-and-their-compositionality.pdf). You will need to obtain these analogies yourself from the link provided. 
+### evaluate_analogies.py 
+Evaluates your composition method based on its performance on the analogies. This code takes in the following command-line arguments: --v gives the path to the word embeddings, --a gives the path to the Mikolov et al. analogies, and comp gives the composition type (addition, multiplication, decomposition, or the combination proposed by Mitchell and Lapata).
 
+# Human_Evaluation
+This directory uses the human paraphrase judgements collected by [Pavlick et al. (2015)] (https://cs.brown.edu/people/epavlick/papers/ppdb2.pdf) to give correlation with cosines between composed phrase embeddings. You will need to download this dataset from the link provided. 
+### process_phrases.py
+Processes the Pavlick et al. data to contain only pairs in which one constituent is a phrase and all words are in vocabulary. This file simply takes in the command-line argument --w, which gives the path to the word embeddings. This code should be run from the directory containing the Pavlick data, namely _ppdb-sample.tsv_ and _wiki-sample.tsv_. 
+### process_by_phrase_length.py
+Processes the Pavlick et al. data to contain only pairs in which one constituent is a phrase of a given length and all words are in the vocabulary. This is helpful for determining if a given composition method is length-dependent. This code takes in the command-line arguments --v, which gives the path to the word vectors, and --n, which gives the desired phrase length.
+### evaluate_human_judgement.py
+ 
+
+### svd_evaluation.py 
 
 
 
