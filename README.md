@@ -1,4 +1,4 @@
-# FinalCompositionality
+# Vector-Based Semantic Compositionality
 This code offers a collection of methods for creating and evaluating composed phrase embeddings. These embeddings are composed in a number of ways, including methods of addition and multiplication originally proposed by [Mitchell and Lapata (2010](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1551-6709.2010.01106.x). We additionally give methods for incorporating image information using [multimodal embeddings](https://github.com/paynesa/multimodal), and for weighting words in a phrase based on their syntactic value according to the [Spacy model](https://spacy.io/usage/linguistic-features). The code is divided into sections as follows: 
 
 # Embeddings 
@@ -8,7 +8,7 @@ Mitchell and Lapata conduct all of their experiments on 2000D co-occurrence embe
 ### get_word_embeddings.py
 Iterates through a list of words and phrases (joined by "\_") and obtains the word embeddings for the words in the phrases, then writes them to an output file. This gives the embeddings needed to compose embeddings in the rest of the code. This file takes in three arguments: --l is the path to the list of words and phrases, --w is the path to the word embeddings, which should be in [Magnitude](https://github.com/plasticityai/magnitude) format, and --o is the file where you would like your embeddings to be written. This file can be converted to the Magnitude format in the command line after creation. 
 ### predict_mmembeddings.py 
-Uses a [ultimodal embedding model]https://github.com/paynesa/multimodal) to predict the multimodal embeddings for the word embeddings created by _get_word_embeddings.py_. It takes in three command-line arguments: --m is the path to the model you'd like to use to generate your multimodal embeddings, --p is the path to the prediction set (in this case, the same as the file created by _get_word_embeddings.py_) and --o is the path where you would like your embeddings to be written. This output can once again be converted to Magnitude in the command line 
+Uses a [ultimodal embedding model]https://github.com/paynesa/multimodal) to predict the multimodal embeddings for the word embeddings created by _get_word_embeddings.py_. It takes in three command-line arguments: --m is the path to the model you'd like to use to generate your multimodal embeddings, --p is the path to the prediction set (in this case, the same as the file created by _get_word_embeddings.py_. This file should not be in Magnitude format) and --o is the path where you would like your embeddings to be written. This output can once again be converted to Magnitude in the command line. 
 
 
 
