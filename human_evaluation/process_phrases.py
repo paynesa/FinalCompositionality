@@ -4,8 +4,6 @@ punc = string.punctuation
 from parseargs import ArgumentParser 
 def parse_args():
 	parser = ArgumentParser()
-	parser.add_argument('model', default='normal', type=str, help='[normal, c_linear, c_neural]')
-	parser.add_argument('path', type=str, help='path to dictionary that contains predicted embeddings')
 	parser.add_argument('--w', type=str, help='path to word vectors')
 	args = parser.parse_args()
 	return args
