@@ -64,10 +64,6 @@ def tcm():
 			f.write(k+" ")
 			x = np.asarray(list(v.values()))
 			np.savetxt(f, x.reshape(1, x.shape[0]))
-
-
-
-
-
-
-tcm()
+if __name__ == '__main__':
+	vocab()
+	tcm()
