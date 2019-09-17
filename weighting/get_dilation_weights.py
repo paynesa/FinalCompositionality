@@ -11,7 +11,6 @@ def parse_args():
 	parser = ArgumentParser()
 	parser.add_argument("--e", type=str, default="total", help="The type of evaluation set to be used")
 	parser.add_argument("--v", type=str, default=None, help="Path to the original vectors")
-	parser.add_argument("--d", type=str, help="Compositionality type")
 	parser.add_argument("--p", type=str, help= "type of tag")
 	parser.add_argument("--t", type=str, help= "tag list")
 	args = parser.parse_args()
