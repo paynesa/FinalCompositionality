@@ -2,14 +2,17 @@
 This code offers a collection of methods for creating and evaluating composed phrase embeddings. These embeddings are composed in a number of ways, including methods of addition and multiplication originally proposed by [Mitchell and Lapata (2010](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1551-6709.2010.01106.x). We additionally give methods for incorporating image information using [multimodal embeddings](https://github.com/paynesa/multimodal), and for weighting words in a phrase based on their syntactic value according to the [Spacy model](https://spacy.io/usage/linguistic-features). The code is divided into sections as follows: 
 
 # Embeddings 
-This folder contains the code (but not the data) necessary to obtain the embeddings for the rest of the work. The code is divided up as follows:
+This folder contains the code (but not the data) necessary to obtain and manipulate the embeddings for the rest of the work. The code is divided up as follows:
 ### co-occurrence_embeddings.py
 Mitchell and Lapata conduct all of their experiments on 2000D co-occurrence embeddings derived from a lemmatized version of the [British National Corpus](http://www.natcorp.ox.ac.uk/). To run this code, you will need to obtain a copy of the corpus and clean and lemmatize it. Then run the code with the parameters --i and --o: the directory containing the lemmatized BNC and the file where you would like your embeddings to be saved, respectively. The embeddings may then be converted to the [Magnitude](https://github.com/plasticityai/magnitude) format on the command line. 
-### get_word_embeddings.py
+### get_word_embeddings.py 
 Iterates through a list of words and phrases (joined by "\_") and obtains the word embeddings for the words in the phrases, then writes them to an output file. This gives the embeddings needed to compose embeddings in the rest of the code. This file takes in three arguments: --l is the path to the list of words and phrases, --w is the path to the word embeddings, which should be in [Magnitude](https://github.com/plasticityai/magnitude) format, and --o is the file where you would like your embeddings to be written. This file can be converted to the Magnitude format in the command line after creation. 
 ### predict_mmembeddings.py 
 Uses a [ultimodal embedding model]https://github.com/paynesa/multimodal) to predict the multimodal embeddings for the word embeddings created by _get_word_embeddings.py_. It takes in three command-line arguments: --m is the path to the model you'd like to use to generate your multimodal embeddings, --p is the path to the prediction set (in this case, the same as the file created by _get_word_embeddings.py_. This file should not be in Magnitude format) and --o is the path where you would like your embeddings to be written. This output can once again be converted to Magnitude in the command line. 
-
+### print_similarity.py 
+Iterates through unimodal, multimodal, and composed embeddings to find the most similar for a list of words and phrases, and prints the most similar words and phrases to the console.This allows you to subjectively evaluate the embeddings that you have been working with with regards to their performance on similarity tasks. This code takes in four command-line arguments: --w gives the path to the list of words, --g gives the path to the unimodal embeddings, --m gives the path to the multimodal embeddings, and --p gives the path to the predicted/composed embeddings. 
+## write_composed.py 
+Writes the composed embeddings to an output file so that you may work with them outside of this environment, or may input them to _print_similarity.py_. This code takes in the following command-line arguments: --e gives the path to the word embeddings to be composed, --w gives the word/phrase list of things to be composed, --o gives the path to the output file, --a gives whether or not you would like articles to be included, and comp is the method of compositionality you would like to utilize. Multiplication, addition, and decomposition are currently available for this model. The output may be converted to the Magnitude format in the command line. 
 
 
 
